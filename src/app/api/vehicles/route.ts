@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { VehicleStatus, VehicleType } from "@prisma/client";
+import { eventManager } from "@/lib/events";
 
 const parseStatus = (value: string) => {
   if (!Object.values(VehicleStatus).includes(value as VehicleStatus)) {
@@ -58,6 +59,11 @@ export async function POST(request: Request) {
     },
   });
 
+  eventManager.emitFleetEvent({
+    type: "vehicle:status",
+    data: { vehicleId: vehicle.id, status: vehicle.status, name },
+  });
+
   return NextResponse.json(vehicle);
 }
 
@@ -91,6 +97,13 @@ export async function PATCH(request: Request) {
     where: { id },
     data: updates,
   });
+
+  if (updates.status) {
+    eventManager.emitFleetEvent({
+      type: "vehicle:status",
+      data: { vehicleId: vehicle.id, status: vehicle.status },
+    });
+  }
 
   return NextResponse.json(vehicle);
 }

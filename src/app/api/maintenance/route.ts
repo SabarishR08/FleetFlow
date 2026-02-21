@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { VehicleStatus } from "@prisma/client";
+import { eventManager } from "@/lib/events";
 
 export async function GET() {
   const logs = await db.maintenanceLog.findMany({
@@ -40,6 +41,11 @@ export async function POST(request: Request) {
     data: { status: VehicleStatus.IN_SHOP },
   });
 
+  eventManager.emitFleetEvent({
+    type: "maintenance:logged",
+    data: { maintenanceId: log.id, vehicleId, description, cost },
+  });
+
   return NextResponse.json(log);
 }
 
@@ -59,6 +65,11 @@ export async function PATCH(request: Request) {
   await db.vehicle.update({
     where: { id: log.vehicleId },
     data: { status: VehicleStatus.AVAILABLE },
+  });
+
+  eventManager.emitFleetEvent({
+    type: "vehicle:status",
+    data: { vehicleId: log.vehicleId, status: "AVAILABLE", reason: "maintenance_resolved" },
   });
 
   return NextResponse.json(log);

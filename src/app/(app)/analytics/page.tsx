@@ -7,6 +7,7 @@ import { ExportButton } from "@/components/ExportButton";
 import { TopBar } from "@/components/TopBar";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
+import { useRealTime } from "@/hooks/useRealTime";
 
 interface VehicleRoi {
   id: string;
@@ -29,13 +30,20 @@ export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const { role } = useRole();
 
-  useEffect(() => {
-    const loadAnalytics = async () => {
-      const response = await fetch("/api/analytics");
-      const data = await response.json();
-      setAnalytics(data);
-    };
+  const loadAnalytics = async () => {
+    const response = await fetch("/api/analytics");
+    const data = await response.json();
+    setAnalytics(data);
+  };
 
+  // Listen for real-time events affecting analytics
+  useRealTime((event) => {
+    if (["trip:completed", "expense:recorded", "maintenance:logged"].includes(event.type)) {
+      loadAnalytics();
+    }
+  });
+
+  useEffect(() => {
     loadAnalytics();
   }, []);
 

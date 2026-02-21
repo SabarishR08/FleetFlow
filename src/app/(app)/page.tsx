@@ -7,6 +7,7 @@ import { StatusPill } from "@/components/StatusPill";
 import { TopBar } from "@/components/TopBar";
 import { formatNumber } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
+import { useRealTime } from "@/hooks/useRealTime";
 
 interface AnalyticsResponse {
   activeFleet: number;
@@ -54,6 +55,14 @@ export default function CommandCenter() {
     setTrips(tripsData);
     setVehicles(vehiclesData);
   }, []);
+
+  // Listen for real-time events
+  useRealTime((event) => {
+    // Reload data on critical events
+    if (["trip:dispatched", "trip:completed", "vehicle:status", "maintenance:logged"].includes(event.type)) {
+      loadData();
+    }
+  });
 
   useEffect(() => {
     loadData();

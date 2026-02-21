@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { DriverStatus, TripStatus, VehicleStatus } from "@prisma/client";
+import { eventManager } from "@/lib/events";
 
 const parseStatus = (value: string) => {
   if (!Object.values(TripStatus).includes(value as TripStatus)) {
@@ -85,6 +86,10 @@ export async function POST(request: Request) {
       db.vehicle.update({ where: { id: vehicleId }, data: { status: VehicleStatus.ON_TRIP } }),
       db.driver.update({ where: { id: driverId }, data: { status: DriverStatus.ON_TRIP } }),
     ]);
+    eventManager.emitFleetEvent({
+      type: "trip:dispatched",
+      data: { tripId: trip.id, reference: trip.reference, vehicleId, driverId },
+    });
   }
 
   return NextResponse.json(trip);
@@ -128,6 +133,11 @@ export async function PATCH(request: Request) {
         data: { status: DriverStatus.ON_DUTY },
       }),
     ]);
+    const eventType = status === TripStatus.COMPLETED ? "trip:completed" : "trip:cancelled";
+    eventManager.emitFleetEvent({
+      type: eventType,
+      data: { tripId: id, reference: trip.reference, status },
+    });
   }
 
   return NextResponse.json(updatedTrip);

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { DriverStatus } from "@prisma/client";
+import { eventManager } from "@/lib/events";
 
 const parseStatus = (value: string) => {
   if (!Object.values(DriverStatus).includes(value as DriverStatus)) {
@@ -49,6 +50,11 @@ export async function POST(request: Request) {
     },
   });
 
+  eventManager.emitFleetEvent({
+    type: "driver:status",
+    data: { driverId: driver.id, status: driver.status, name },
+  });
+
   return NextResponse.json(driver);
 }
 
@@ -74,6 +80,13 @@ export async function PATCH(request: Request) {
     where: { id },
     data: updates,
   });
+
+  if (updates.status) {
+    eventManager.emitFleetEvent({
+      type: "driver:status",
+      data: { driverId: driver.id, status: driver.status },
+    });
+  }
 
   return NextResponse.json(driver);
 }

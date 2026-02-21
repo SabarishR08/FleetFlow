@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ExpenseType } from "@prisma/client";
+import { eventManager } from "@/lib/events";
 
 const parseType = (value: string) => {
   if (!Object.values(ExpenseType).includes(value as ExpenseType)) {
@@ -44,6 +45,11 @@ export async function POST(request: Request) {
       expenseDate,
       type,
     },
+  });
+
+  eventManager.emitFleetEvent({
+    type: "expense:recorded",
+    data: { expenseId: expense.id, vehicleId, type, cost },
   });
 
   return NextResponse.json(expense);
