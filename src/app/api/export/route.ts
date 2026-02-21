@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import PDFDocument from "pdfkit";
 import * as XLSX from "xlsx";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<Response> {
   const { searchParams } = new URL(request.url);
   const format = searchParams.get("format") || "pdf";
   const type = searchParams.get("type") || "trips";

@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { formatNumber } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
 import { useRealTime } from "@/hooks/useRealTime";
+import { useOfflineSync, cacheAPIResponse, getCachedData } from "@/hooks/useOfflineSync";
 
 interface AnalyticsResponse {
   activeFleet: number;
@@ -40,20 +41,41 @@ export default function CommandCenter() {
   const [trips, setTrips] = useState<TripItem[]>([]);
   const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
   const { role } = useRole();
+  const { isOnline, isSyncing } = useOfflineSync();
 
   const loadData = useCallback(async () => {
-    const [analyticsRes, tripsRes, vehiclesRes] = await Promise.all([
-      fetch("/api/analytics"),
-      fetch("/api/trips"),
-      fetch("/api/vehicles"),
-    ]);
+    try {
+      const [analyticsRes, tripsRes, vehiclesRes] = await Promise.all([
+        fetch("/api/analytics"),
+        fetch("/api/trips"),
+        fetch("/api/vehicles"),
+      ]);
 
-    const analyticsData = await analyticsRes.json();
-    const tripsData = await tripsRes.json();
-    const vehiclesData = await vehiclesRes.json();
-    setAnalytics(analyticsData);
-    setTrips(tripsData);
-    setVehicles(vehiclesData);
+      const analyticsData = await analyticsRes.json();
+      const tripsData = await tripsRes.json();
+      const vehiclesData = await vehiclesRes.json();
+
+      // Cache the data for offline use
+      await Promise.all([
+        cacheAPIResponse("analytics", [analyticsData]),
+        cacheAPIResponse("trips", tripsData),
+        cacheAPIResponse("vehicles", vehiclesData),
+      ]);
+
+      setAnalytics(analyticsData);
+      setTrips(tripsData);
+      setVehicles(vehiclesData);
+    } catch (error) {
+      // If offline or network error, try to use cached data
+      console.log("Network error, attempting to use cached data...");
+      const cachedAnalytics = await getCachedData("analytics");
+      const cachedTrips = await getCachedData("trips");
+      const cachedVehicles = await getCachedData("vehicles");
+
+      if (cachedAnalytics.length > 0) setAnalytics(cachedAnalytics[0]);
+      if (cachedTrips.length > 0) setTrips(cachedTrips);
+      if (cachedVehicles.length > 0) setVehicles(cachedVehicles);
+    }
   }, []);
 
   // Listen for real-time events

@@ -8,6 +8,7 @@ import { TopBar } from "@/components/TopBar";
 import { formatCurrency, formatNumber } from "@/lib/format";
 import { useRole } from "@/lib/role-context";
 import { useRealTime } from "@/hooks/useRealTime";
+import { useOfflineSync, cacheAPIResponse, getCachedData } from "@/hooks/useOfflineSync";
 
 interface VehicleRoi {
   id: string;
@@ -29,11 +30,24 @@ interface AnalyticsResponse {
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const { role } = useRole();
+  const { isOnline } = useOfflineSync();
 
   const loadAnalytics = async () => {
-    const response = await fetch("/api/analytics");
-    const data = await response.json();
-    setAnalytics(data);
+    try {
+      const response = await fetch("/api/analytics");
+      const data = await response.json();
+      
+      // Cache for offline use
+      await cacheAPIResponse("analytics", [data]);
+      setAnalytics(data);
+    } catch (error) {
+      // Fall back to cached data
+      console.log("Network error, using cached analytics...");
+      const cachedData = await getCachedData("analytics");
+      if (cachedData.length > 0) {
+        setAnalytics(cachedData[0]);
+      }
+    }
   };
 
   // Listen for real-time events affecting analytics

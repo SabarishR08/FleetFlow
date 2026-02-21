@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist_Mono, Space_Grotesk, Fraunces } from "next/font/google";
+import { ServiceWorkerRegistration } from "@/components/ServiceWorkerRegistration";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -32,6 +33,7 @@ export default function RootLayout({
       <body
         className={`${spaceGrotesk.variable} ${geistMono.variable} ${fraunces.variable} antialiased`}
       >
+        <ServiceWorkerRegistration />
         {children}
       </body>
     </html>
