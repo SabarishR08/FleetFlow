@@ -1,0 +1,68 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7f4ef;
+  --surface: #fdfbf7;
+  --ink: #16130e;
+  --muted: #6a6158;
+  --accent: #c9794c;
+  --accent-2: #2f6b6a;
+  --border: #e4ded5;
+  --glow: rgba(201, 121, 76, 0.2);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--ink);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: radial-gradient(circle at top left, rgba(201, 121, 76, 0.12), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(47, 107, 106, 0.12), transparent 50%),
+    var(--background);
+  color: var(--ink);
+  font-family: var(--font-space-grotesk), system-ui, sans-serif;
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.glass {
+  background: rgba(253, 251, 247, 0.78);
+  border: 1px solid var(--border);
+  box-shadow: 0 24px 60px rgba(22, 19, 14, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 40px rgba(22, 19, 14, 0.08);
+}
+
+.pill {
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.page-fade {
+  animation: pageFade 0.6s ease-out;
+}
+
+@keyframes pageFade {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum VehicleStatus {
+  AVAILABLE
+  ON_TRIP
+  IN_SHOP
+  OUT_OF_SERVICE
+}
+
+enum VehicleType {
+  TRUCK
+  VAN
+  BIKE
+}
+
+enum DriverStatus {
+  ON_DUTY
+  OFF_DUTY
+  ON_TRIP
+}
+
+enum TripStatus {
+  DRAFT
+  DISPATCHED
+  COMPLETED
+  CANCELLED
+}
+
+enum ExpenseType {
+  FUEL
+  TOLL
+  OTHER
+}
+
+model Vehicle {
+  id              String           @id @default(cuid())
+  name            String
+  model           String
+  licensePlate    String           @unique
+  maxLoad         Int
+  odometer        Int
+  acquisitionCost Float            @default(0)
+  status          VehicleStatus
+  region          String
+  type            VehicleType
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  trips           Trip[]
+  maintenanceLogs MaintenanceLog[]
+  expenses        Expense[]
+}
+
+model Driver {
+  id                 String       @id @default(cuid())
+  name               String
+  licenseNumber      String
+  licenseExpiry      DateTime
+  licenseClass       String
+  status             DriverStatus
+  safetyScore        Float
+  tripCompletionRate Float
+  region             String
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  trips              Trip[]
+}
+
+model Trip {
+  id          String      @id @default(cuid())
+  reference   String
+  origin      String
+  destination String
+  cargoWeight Int
+  status      TripStatus
+  distanceKm  Int
+  revenue     Float
+  createdAt   DateTime    @default(now())
+  completedAt DateTime?
+  vehicleId   String?
+  driverId    String?
+  vehicle     Vehicle?    @relation(fields: [vehicleId], references: [id])
+  driver      Driver?     @relation(fields: [driverId], references: [id])
+  expenses    Expense[]
+}
+
+model MaintenanceLog {
+  id          String   @id @default(cuid())
+  vehicleId   String
+  description String
+  cost        Float
+  servicedAt  DateTime
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  vehicle     Vehicle  @relation(fields: [vehicleId], references: [id])
+}
+
+model Expense {
+  id          String      @id @default(cuid())
+  vehicleId   String
+  tripId      String?
+  liters      Float
+  cost        Float
+  expenseDate DateTime
+  type        ExpenseType
+  createdAt   DateTime    @default(now())
+  vehicle     Vehicle     @relation(fields: [vehicleId], references: [id])
+  trip        Trip?       @relation(fields: [tripId], references: [id])
+}
