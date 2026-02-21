@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { TopBar } from "@/components/TopBar";
 import { formatDate, formatNumber, isExpired } from "@/lib/format";
+import { useRole } from "@/lib/role-context";
 
 interface Vehicle {
   id: string;
@@ -40,6 +41,7 @@ export default function TripDispatcher() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { role } = useRole();
 
   const [form, setForm] = useState({
     reference: "",
@@ -123,11 +125,17 @@ export default function TripDispatcher() {
 
   return (
     <div className="flex flex-col gap-8">
-      <TopBar title="Trip Dispatch" subtitle="Assign vehicles, validate cargo, and move freight." actionLabel="View Analytics" actionHref="/analytics" />
+      <TopBar 
+        title={role === "Dispatcher" ? "Trip Dispatch" : role === "Safety Officer" ? "Trip Compliance" : "Trip Dispatch"} 
+        subtitle={role === "Dispatcher" ? "Assign vehicles, validate cargo, and move freight." : role === "Safety Officer" ? "Monitor trip status and driver assignments." : "Assign vehicles, validate cargo, and move freight."} 
+        actionLabel="View Analytics" 
+        actionHref="/analytics" 
+      />
 
-      <section className="card rounded-[28px] p-6">
-        <SectionHeader title="Dispatch New Trip" description="Cargo weight is validated against vehicle capacity." />
-        <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+      {(role === "Dispatcher" || role === "Fleet Manager") && (
+        <section className="card rounded-[28px] p-6">
+          <SectionHeader title="Dispatch New Trip" description="Cargo weight is validated against vehicle capacity." />
+          <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <input
             className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm"
             placeholder="Reference"
@@ -206,6 +214,7 @@ export default function TripDispatcher() {
         </form>
         {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
       </section>
+      )}
 
       <section className="card rounded-[28px] p-6">
         <SectionHeader title="Trip Lifecycle" description="Monitor dispatch status and close out trips." />

@@ -6,6 +6,7 @@ import { StatCard } from "@/components/StatCard";
 import { StatusPill } from "@/components/StatusPill";
 import { TopBar } from "@/components/TopBar";
 import { formatNumber } from "@/lib/format";
+import { useRole } from "@/lib/role-context";
 
 interface AnalyticsResponse {
   activeFleet: number;
@@ -37,6 +38,7 @@ export default function CommandCenter() {
   const [analytics, setAnalytics] = useState<AnalyticsResponse | null>(null);
   const [trips, setTrips] = useState<TripItem[]>([]);
   const [vehicles, setVehicles] = useState<VehicleItem[]>([]);
+  const { role } = useRole();
 
   const loadData = useCallback(async () => {
     const [analyticsRes, tripsRes, vehiclesRes] = await Promise.all([
@@ -62,92 +64,186 @@ export default function CommandCenter() {
 
   return (
     <div className="flex flex-col gap-8">
-      <TopBar title="Command Center" subtitle="Live fleet posture and compliance signals." actionLabel="Open Dispatch" actionHref="/trips" />
+      <TopBar 
+        title={
+          role === "Dispatcher" 
+            ? "Dispatch Dashboard" 
+            : role === "Safety Officer" 
+            ? "Safety & Compliance"
+            : role === "Financial Analyst"
+            ? "Finance Dashboard"
+            : "Command Center"
+        } 
+        subtitle={
+          role === "Dispatcher"
+            ? "Manage active dispatches and vehicle assignments."
+            : role === "Safety Officer"
+            ? "Monitor driver compliance and vehicle status."
+            : role === "Financial Analyst"
+            ? "Track costs, revenue, and ROI metrics."
+            : "Live fleet posture and compliance signals."
+        } 
+        actionLabel="Open Dispatch" 
+        actionHref="/trips" 
+      />
 
       <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active Fleet" value={analytics ? formatNumber(analytics.activeFleet) : "--"} hint="Vehicles on trip" />
-        <StatCard
-          label="Maintenance Alerts"
-          value={analytics ? formatNumber(analytics.maintenanceAlerts) : "--"}
-          hint="Vehicles in shop"
-        />
-        <StatCard
-          label="Utilization Rate"
-          value={analytics ? `${analytics.utilizationRate}%` : "--"}
-          hint="Assigned vs idle"
-        />
-        <StatCard label="Pending Cargo" value={analytics ? formatNumber(analytics.pendingCargo) : "--"} hint="Draft dispatches" />
+        {role === "Dispatcher" && (
+          <>
+            <StatCard label="Active Trips" value={analytics ? formatNumber(analytics.activeFleet) : "--"} hint="Dispatches in motion" />
+            <StatCard label="Pending Cargo" value={analytics ? formatNumber(analytics.pendingCargo) : "--"} hint="Awaiting dispatch" />
+            <StatCard label="Available Vehicles" value={vehicles ? formatNumber(vehicles.filter(v => v.status === "AVAILABLE").length) : "--"} hint="Ready to assign" />
+            <StatCard label="Utilization Rate" value={analytics ? `${analytics.utilizationRate}%` : "--"} hint="Fleet efficiency" />
+          </>
+        )}
+        {role === "Safety Officer" && (
+          <>
+            <StatCard label="Maintenance Alerts" value={analytics ? formatNumber(analytics.maintenanceAlerts) : "--"} hint="Vehicles in shop" />
+            <StatCard label="Vehicles in Shop" value={vehicles ? formatNumber(vehicles.filter(v => v.status === "IN_SHOP").length) : "--"} hint="Service queue" />
+            <StatCard label="Active Fleet" value={analytics ? formatNumber(analytics.activeFleet) : "--"} hint="On the road" />
+            <StatCard label="Utilization Rate" value={analytics ? `${analytics.utilizationRate}%` : "--"} hint="Safety margin" />
+          </>
+        )}
+        {role === "Financial Analyst" && (
+          <>
+            <StatCard label="Active Fleet" value={analytics ? formatNumber(analytics.activeFleet) : "--"} hint="Revenue-generating" />
+            <StatCard label="Fuel Efficiency" value={analytics ? `${analytics.fuelEfficiency} km/L` : "--"} hint="Operating cost" />
+            <StatCard label="Utilization Rate" value={analytics ? `${analytics.utilizationRate}%` : "--"} hint="Asset productivity" />
+            <StatCard label="Pending Cargo" value={analytics ? formatNumber(analytics.pendingCargo) : "--"} hint="Upcoming revenue" />
+          </>
+        )}
+        {role === "Fleet Manager" && (
+          <>
+            <StatCard label="Active Fleet" value={analytics ? formatNumber(analytics.activeFleet) : "--"} hint="Vehicles on trip" />
+            <StatCard
+              label="Maintenance Alerts"
+              value={analytics ? formatNumber(analytics.maintenanceAlerts) : "--"}
+              hint="Vehicles in shop"
+            />
+            <StatCard
+              label="Utilization Rate"
+              value={analytics ? `${analytics.utilizationRate}%` : "--"}
+              hint="Assigned vs idle"
+            />
+            <StatCard label="Pending Cargo" value={analytics ? formatNumber(analytics.pendingCargo) : "--"} hint="Draft dispatches" />
+          </>
+        )}
       </section>
 
       <section className="grid gap-6 lg:grid-cols-[1.3fr_1fr]">
-        <div className="card rounded-[28px] p-6">
-          <SectionHeader title="Active Trips" description="Dispatches currently moving freight." />
-          <div className="mt-6 space-y-4">
-            {activeTrips.length === 0 ? (
-              <p className="text-sm text-[color:var(--muted)]">No active trips yet.</p>
-            ) : (
-              activeTrips.slice(0, 4).map((trip) => (
-                <div key={trip.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[color:var(--border)] p-4">
-                  <div>
-                    <p className="text-sm font-semibold text-[color:var(--ink)]">{trip.reference}</p>
-                    <p className="text-xs text-[color:var(--muted)]">
-                      {trip.origin} to {trip.destination}
-                    </p>
-                    <p className="mt-1 text-xs text-[color:var(--muted)]">
-                      {trip.vehicle?.name || "Unassigned"} - {trip.driver?.name || "No driver"}
-                    </p>
+        {(role === "Dispatcher" || role === "Fleet Manager") && (
+          <div className="card rounded-[28px] p-6">
+            <SectionHeader title="Active Trips" description="Dispatches currently moving freight." />
+            <div className="mt-6 space-y-4">
+              {activeTrips.length === 0 ? (
+                <p className="text-sm text-[color:var(--muted)]">No active trips yet.</p>
+              ) : (
+                activeTrips.slice(0, 4).map((trip) => (
+                  <div key={trip.id} className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[color:var(--border)] p-4">
+                    <div>
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">{trip.reference}</p>
+                      <p className="text-xs text-[color:var(--muted)]">
+                        {trip.origin} to {trip.destination}
+                      </p>
+                      <p className="mt-1 text-xs text-[color:var(--muted)]">
+                        {trip.vehicle?.name || "Unassigned"} - {trip.driver?.name || "No driver"}
+                      </p>
+                    </div>
+                    <StatusPill tone="blue" label="On Trip" />
                   </div>
-                  <StatusPill tone="blue" label="On Trip" />
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
-        <div className="card rounded-[28px] p-6">
-          <SectionHeader title="Maintenance Radar" description="Vehicles removed from dispatching." />
-          <div className="mt-6 space-y-4">
-            {inShop.length === 0 ? (
-              <p className="text-sm text-[color:var(--muted)]">No vehicles in shop.</p>
-            ) : (
-              inShop.slice(0, 4).map((vehicle) => (
-                <div key={vehicle.id} className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-4">
-                  <div>
-                    <p className="text-sm font-semibold text-[color:var(--ink)]">{vehicle.name}</p>
-                    <p className="text-xs text-[color:var(--muted)]">{vehicle.region} region</p>
+        )}
+        {(role === "Safety Officer" || role === "Fleet Manager") && (
+          <div className="card rounded-[28px] p-6">
+            <SectionHeader title="Maintenance Radar" description="Vehicles removed from dispatching." />
+            <div className="mt-6 space-y-4">
+              {inShop.length === 0 ? (
+                <p className="text-sm text-[color:var(--muted)]">No vehicles in shop.</p>
+              ) : (
+                inShop.slice(0, 4).map((vehicle) => (
+                  <div key={vehicle.id} className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-4">
+                    <div>
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">{vehicle.name}</p>
+                      <p className="text-xs text-[color:var(--muted)]">{vehicle.region} region</p>
+                    </div>
+                    <StatusPill tone="amber" label="In Shop" />
                   </div>
-                  <StatusPill tone="amber" label="In Shop" />
-                </div>
-              ))
-            )}
+                ))
+              )}
+            </div>
           </div>
-        </div>
-      </section>
-
-      <section className="card rounded-[28px] p-6">
-        <SectionHeader title="Vehicle Snapshot" description="Availability by asset type." />
-        <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          {vehicles.slice(0, 6).map((vehicle) => (
-            <div key={vehicle.id} className="rounded-2xl border border-[color:var(--border)] p-4">
-              <p className="text-sm font-semibold text-[color:var(--ink)]">{vehicle.name}</p>
-              <p className="text-xs text-[color:var(--muted)]">{vehicle.type} - {vehicle.region}</p>
-              <div className="mt-3">
-                <StatusPill
-                  tone={
-                    vehicle.status === "AVAILABLE"
-                      ? "green"
-                      : vehicle.status === "ON_TRIP"
-                        ? "blue"
-                        : vehicle.status === "IN_SHOP"
-                          ? "amber"
-                          : "slate"
-                  }
-                  label={vehicle.status.replaceAll("_", " ")}
-                />
+        )}
+        {role === "Dispatcher" && (
+          <div className="card rounded-[28px] p-6">
+            <SectionHeader title="Available Assets" description="Vehicles ready for new assignment." />
+            <div className="mt-6 space-y-3">
+              {vehicles.filter(v => v.status === "AVAILABLE").length === 0 ? (
+                <p className="text-sm text-[color:var(--muted)]">All vehicles assigned or in shop.</p>
+              ) : (
+                vehicles.filter(v => v.status === "AVAILABLE").slice(0, 4).map((vehicle) => (
+                  <div key={vehicle.id} className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-3">
+                    <div>
+                      <p className="text-sm font-semibold text-[color:var(--ink)]">{vehicle.name}</p>
+                      <p className="text-xs text-[color:var(--muted)]">{vehicle.type}</p>
+                    </div>
+                    <StatusPill tone="green" label="Ready" />
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        )}
+        {role === "Financial Analyst" && (
+          <div className="card rounded-[28px] p-6">
+            <SectionHeader title="Fleet Overview" description="Active and idle vehicles." />
+            <div className="mt-6 space-y-3">
+              <div className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-3">
+                <span className="text-sm text-[color:var(--ink)]">On Trip (Revenue)</span>
+                <span className="font-semibold">{vehicles.filter(v => v.status === "ON_TRIP").length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-3">
+                <span className="text-sm text-[color:var(--ink)]">In Shop (Cost)</span>
+                <span className="font-semibold">{vehicles.filter(v => v.status === "IN_SHOP").length}</span>
+              </div>
+              <div className="flex items-center justify-between rounded-2xl border border-[color:var(--border)] p-3">
+                <span className="text-sm text-[color:var(--ink)]">Available (Idle)</span>
+                <span className="font-semibold">{vehicles.filter(v => v.status === "AVAILABLE").length}</span>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </section>
+
+      {(role === "Fleet Manager" || role === "Dispatcher") && (
+        <section className="card rounded-[28px] p-6">
+          <SectionHeader title="Vehicle Snapshot" description="Availability by asset type." />
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+            {vehicles.slice(0, 6).map((vehicle) => (
+              <div key={vehicle.id} className="rounded-2xl border border-[color:var(--border)] p-4">
+                <p className="text-sm font-semibold text-[color:var(--ink)]">{vehicle.name}</p>
+                <p className="text-xs text-[color:var(--muted)]">{vehicle.type} - {vehicle.region}</p>
+                <div className="mt-3">
+                  <StatusPill
+                    tone={
+                      vehicle.status === "AVAILABLE"
+                        ? "green"
+                        : vehicle.status === "ON_TRIP"
+                          ? "blue"
+                          : vehicle.status === "IN_SHOP"
+                            ? "amber"
+                            : "slate"
+                    }
+                    label={vehicle.status.replaceAll("_", " ")}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

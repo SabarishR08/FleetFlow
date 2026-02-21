@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { TopBar } from "@/components/TopBar";
 import { formatDate, isExpired } from "@/lib/format";
+import { useRole } from "@/lib/role-context";
 
 interface Driver {
   id: string;
@@ -21,6 +22,7 @@ interface Driver {
 export default function DriversPage() {
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { role } = useRole();
   const [form, setForm] = useState({
     name: "",
     licenseNumber: "",
@@ -88,11 +90,17 @@ export default function DriversPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      <TopBar title="Driver Profiles" subtitle="Monitor compliance, safety score, and duty status." actionLabel="View Trips" actionHref="/trips" />
+      <TopBar 
+        title={role === "Safety Officer" ? "Driver Compliance" : "Driver Profiles"} 
+        subtitle={role === "Safety Officer" ? "Monitor license expiry, safety scores, and compliance status." : "Monitor compliance, safety score, and duty status."} 
+        actionLabel="View Trips" 
+        actionHref="/trips" 
+      />
 
-      <section className="card rounded-[28px] p-6">
-        <SectionHeader title="Add Driver" description={`${expiredCount} license(s) currently expired.`} />
-        <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+      {(role === "Fleet Manager" || role === "Dispatcher") && (
+        <section className="card rounded-[28px] p-6">
+          <SectionHeader title="Add Driver" description={`${expiredCount} license(s) currently expired.`} />
+          <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <input
             className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm"
             placeholder="Driver name"
@@ -150,6 +158,7 @@ export default function DriversPage() {
         </form>
         {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
       </section>
+      )}
 
       <section className="card rounded-[28px] p-6">
         <SectionHeader title="Driver Roster" description="Toggle duty status to reflect availability." />

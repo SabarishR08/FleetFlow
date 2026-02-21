@@ -5,6 +5,7 @@ import { SectionHeader } from "@/components/SectionHeader";
 import { StatusPill } from "@/components/StatusPill";
 import { TopBar } from "@/components/TopBar";
 import { formatNumber } from "@/lib/format";
+import { useRole } from "@/lib/role-context";
 
 interface Vehicle {
   id: string;
@@ -28,6 +29,7 @@ const statusTone: Record<string, "green" | "amber" | "red" | "slate" | "blue"> =
 export default function VehicleRegistry() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const { role } = useRole();
 
   const [form, setForm] = useState({
     name: "",
@@ -95,11 +97,17 @@ export default function VehicleRegistry() {
 
   return (
     <div className="flex flex-col gap-8">
-      <TopBar title="Vehicle Registry" subtitle="Manage assets, availability, and capacity." actionLabel="View Dispatch" actionHref="/trips" />
+      <TopBar 
+        title={role === "Financial Analyst" ? "Fleet Assets" : "Vehicle Registry"} 
+        subtitle={role === "Financial Analyst" ? "Monitor vehicle acquisition cost and depreciation." : "Manage assets, availability, and capacity."} 
+        actionLabel="View Dispatch" 
+        actionHref="/trips" 
+      />
 
-      <section className="card rounded-[28px] p-6">
-        <SectionHeader title="Add Vehicle" description="Register new fleet assets and track lifecycle data." />
-        <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
+      {(role === "Fleet Manager" || role === "Dispatcher") && (
+        <section className="card rounded-[28px] p-6">
+          <SectionHeader title="Add Vehicle" description="Register new fleet assets and track lifecycle data." />
+          <form className="mt-6 grid gap-4 md:grid-cols-2" onSubmit={handleSubmit}>
           <input
             className="rounded-2xl border border-[color:var(--border)] bg-[color:var(--surface)] px-4 py-3 text-sm"
             placeholder="Vehicle name"
@@ -167,6 +175,7 @@ export default function VehicleRegistry() {
         </form>
         {error ? <p className="mt-4 text-sm text-rose-600">{error}</p> : null}
       </section>
+      )}
 
       <section className="card rounded-[28px] p-6">
         <SectionHeader title="Fleet Inventory" description="Toggle status and watch availability changes in real time." />
